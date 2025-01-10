@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +20,7 @@ import com.example.login_app.RetrofitInstance
 import com.example.login_app.data.AuthRepository
 import com.example.login_app.ui.home.HomeActivity
 import com.example.login_app.ui.register.RegisterActivity
+import com.example.login_app.ui.theme.LoginAppTheme
 
 class LoginActivity : ComponentActivity() {
 
@@ -29,67 +31,80 @@ class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            LoginContent(loginViewModel)
+            LoginAppTheme {
+                LoginScreen(loginViewModel)
+            }
         }
     }
 }
 
 @Composable
-fun LoginContent(viewModel: LoginViewModel) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+fun LoginScreen(viewModel: LoginViewModel) {
     val context = LocalContext.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text(text = "Login", fontSize = 24.sp)
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = {
-                viewModel.login(username, password) { response, error ->
-                    if (response != null) {
-                        Toast.makeText(context, "Login successful", Toast.LENGTH_LONG).show()
-                        val intent = Intent(context, HomeActivity::class.java)
-                        context.startActivity(intent)
-                        (context as? ComponentActivity)?.finish()
-                    } else {
-                        Toast.makeText(context, "Login failed: $error", Toast.LENGTH_LONG).show()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(text = "Login", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(32.dp))
+            var username by remember { mutableStateOf("") }
+            var password by remember { mutableStateOf("") }
+
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Username") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = {
+                    viewModel.login(username, password) { response, error ->
+                        if (response != null) {
+                            Toast.makeText(context, "Login successful", Toast.LENGTH_LONG).show()
+                            // Navegar a HomeActivity
+                            val intent = Intent(context, HomeActivity::class.java)
+                            context.startActivity(intent)
+                            (context as? ComponentActivity)?.finish()
+                        } else {
+                            Toast.makeText(context, "Login failed: $error", Toast.LENGTH_LONG).show()
+                        }
                     }
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Login")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        TextButton(
-            onClick = {
-                val intent = Intent(context, RegisterActivity::class.java)
-                context.startActivity(intent)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Don't have an account? Register here")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                Text("Login")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            TextButton(
+                onClick = {
+                    val intent = Intent(context, RegisterActivity::class.java)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Don't have an account? Register here")
+            }
         }
     }
 }
