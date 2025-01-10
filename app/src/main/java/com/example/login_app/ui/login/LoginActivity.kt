@@ -1,11 +1,11 @@
-package com.example.login_app
+package com.example.login_app.ui.login
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,25 +15,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.login_app.RetrofitInstance
+import com.example.login_app.data.AuthRepository
+import com.example.login_app.ui.home.HomeActivity
+import com.example.login_app.ui.register.RegisterActivity
 
-class RegisterScreen : ComponentActivity() {
+class LoginActivity : ComponentActivity() {
+
+    private val loginViewModel: LoginViewModel by viewModels {
+        LoginViewModelFactory(AuthRepository(RetrofitInstance.api))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            RegisterContent(onLoginClick = { /* Handle login click */ })
+            LoginContent(loginViewModel)
         }
     }
 }
 
 @Composable
-fun RegisterContent(onLoginClick: () -> Unit) {
+fun LoginContent(viewModel: LoginViewModel) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     Column(
@@ -43,19 +47,12 @@ fun RegisterContent(onLoginClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "Register", fontSize = 24.sp, style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Login", fontSize = 24.sp)
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
             label = { Text("Username") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -69,35 +66,30 @@ fun RegisterContent(onLoginClick: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
-                registerUser(username, password, email, context)
+                viewModel.login(username, password) { response, error ->
+                    if (response != null) {
+                        Toast.makeText(context, "Login successful", Toast.LENGTH_LONG).show()
+                        val intent = Intent(context, HomeActivity::class.java)
+                        context.startActivity(intent)
+                        (context as? ComponentActivity)?.finish()
+                    } else {
+                        Toast.makeText(context, "Login failed: $error", Toast.LENGTH_LONG).show()
+                    }
+                }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Register")
+            Text("Login")
         }
         Spacer(modifier = Modifier.height(16.dp))
-        TextButton(onClick = onLoginClick) {
-            Text("¿Ya tienes una cuenta? Acceso")
-        }
-    }
-}
-
-fun registerUser(username: String, password: String, email: String, context: Context) {
-    val request = RegisterRequest(username, password, email)
-    CoroutineScope(Dispatchers.IO).launch {
-        try {
-            val response = RetrofitInstance.api.register(request)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, response.message, Toast.LENGTH_LONG).show()
-                // Navegar a LoginScreen después de un registro exitoso
-                val intent = Intent(context, LoginScreen::class.java)
+        TextButton(
+            onClick = {
+                val intent = Intent(context, RegisterActivity::class.java)
                 context.startActivity(intent)
-                (context as? ComponentActivity)?.finish() // Opcional: finalizar RegisterScreen para que el usuario no pueda regresar con el botón atrás
-            }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "Registration failed: ${e.message}", Toast.LENGTH_LONG).show()
-            }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Don't have an account? Register here")
         }
     }
 }
