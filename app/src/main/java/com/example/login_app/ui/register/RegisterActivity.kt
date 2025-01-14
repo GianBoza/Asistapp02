@@ -1,10 +1,6 @@
 package com.example.login_app.ui.register
 
-import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,36 +9,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.login_app.RetrofitInstance
 import com.example.login_app.data.AuthRepository
-import com.example.login_app.ui.theme.LoginAppTheme
 import com.example.login_app.ui.theme.WindowsXpBlue
 import com.example.login_app.ui.theme.WindowsXpGrass
 import com.example.login_app.ui.theme.WindowsXpSky
 
-class RegisterActivity : ComponentActivity() {
-
-    private val registerViewModel: RegisterViewModel by viewModels {
-        RegisterViewModelFactory(AuthRepository(RetrofitInstance.api))
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            LoginAppTheme {
-                RegisterScreen(registerViewModel)
-            }
-        }
-    }
-}
-
 @Composable
-fun RegisterScreen(viewModel: RegisterViewModel) {
+fun RegisterScreen(navController: NavHostController) {
     val context = LocalContext.current
+    val viewModel: RegisterViewModel = viewModel(factory = RegisterViewModelFactory(AuthRepository(RetrofitInstance.api)))
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -99,8 +81,7 @@ fun RegisterScreen(viewModel: RegisterViewModel) {
                         viewModel.register(username, password, email) { response, error ->
                             if (response != null) {
                                 Toast.makeText(context, "Registration successful", Toast.LENGTH_LONG).show()
-                                // Navegar de vuelta a LoginActivity
-                                (context as? ComponentActivity)?.finish()
+                                navController.navigate("login")
                             } else {
                                 Toast.makeText(context, "Registration failed: $error", Toast.LENGTH_LONG).show()
                             }

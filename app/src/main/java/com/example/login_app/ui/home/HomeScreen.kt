@@ -1,6 +1,5 @@
 package com.example.login_app.ui.home
 
-import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,7 +13,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.login_app.ui.login.LoginActivity
 import com.example.login_app.ui.theme.WindowsXpBlue
 import com.example.login_app.ui.theme.WindowsXpGrass
 import com.example.login_app.ui.theme.WindowsXpSky
@@ -67,9 +65,9 @@ fun HomeScreen(navController: NavHostController) {
             Button(
                 onClick = {
                     // Navegar a LoginActivity
-                    val intent = Intent(context, LoginActivity::class.java)
-                    context.startActivity(intent)
-                    (context as? ComponentActivity)?.finish()
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
