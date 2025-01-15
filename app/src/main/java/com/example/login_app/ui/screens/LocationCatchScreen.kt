@@ -9,20 +9,44 @@ import android.os.Looper
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
+import com.example.login_app.RetrofitInstance
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.PolyUtil
-import com.google.maps.android.compose.*
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapType
+import com.google.maps.android.compose.Polygon
+import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.launch
 
 @Composable
 fun LocationCatchScreen(context: Context) {
@@ -49,7 +73,6 @@ fun LocationCatchScreen(context: Context) {
         LocationServices.getFusedLocationProviderClient(context)
     }
 
-    // Configuración de alta precisión para la ubicación
     val locationRequest = remember {
         LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
@@ -77,7 +100,6 @@ fun LocationCatchScreen(context: Context) {
         }
     }
 
-    // Efecto para iniciar/detener actualizaciones de ubicación
     LaunchedEffect(hasLocationPermission.value) {
         if (!hasLocationPermission.value) {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -86,7 +108,6 @@ fun LocationCatchScreen(context: Context) {
         }
     }
 
-    // Limpiar el callback cuando se desmonte el composable
     DisposableEffect(Unit) {
         onDispose {
             fusedLocationClient.removeLocationUpdates(locationCallback)
@@ -97,7 +118,7 @@ fun LocationCatchScreen(context: Context) {
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
             userLocation ?: ArequipaLocation,
-            18f  // Aumenté el zoom para mejor visibilidad
+            18f
         )
     }
 
@@ -138,10 +159,11 @@ fun LocationCatchScreen(context: Context) {
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val coroutineScope = rememberCoroutineScope()
             Button(
                 onClick = {
                     userLocation?.let { location ->
-                        val buffer = 0.00001 // Pequeño buffer para mayor tolerancia
+                        val buffer = 0.00001
                         val isInside = PolyUtil.containsLocation(
                             location.latitude,
                             location.longitude,
@@ -152,10 +174,14 @@ fun LocationCatchScreen(context: Context) {
                             distance < buffer
                         }
 
-                        dialogMessage = if (isInside) {
-                            "Asistencia Registrada"
+                        if (isInside) {
+                            // Llama a la función de suspensión desde una coroutine
+                            coroutineScope.launch {
+                                registerAttendance(context)
+                            }
+                            dialogMessage = "Asistencia Registrada"
                         } else {
-                            "Asegúrate de estar dentro del área de trabajo"
+                            dialogMessage = "Asegúrate de estar dentro del área de trabajo"
                         }
                         showDialog = true
                     }
@@ -204,7 +230,7 @@ private fun checkAndRequestLocationUpdates(
 
 // Función para calcular la distancia entre dos puntos
 private fun computeDistanceBetween(point1: LatLng, point2: LatLng): Double {
-    val R = 6371000 // Radio de la Tierra en metros
+    val R = 6371000
     val lat1 = Math.toRadians(point1.latitude)
     val lat2 = Math.toRadians(point2.latitude)
     val dLat = Math.toRadians(point2.latitude - point1.latitude)
@@ -216,4 +242,43 @@ private fun computeDistanceBetween(point1: LatLng, point2: LatLng): Double {
     val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
     return R * c
+}
+
+// Cambia esta función a una función de suspensión
+private suspend fun registerAttendance(context: Context) {
+    val apiService = RetrofitInstance.api
+    val request = createAttendanceRequest(context)
+
+    if (request != null) {
+        try {
+            val response = apiService.attendance(request)
+            if (response != null) {
+                // Asistencia registrada exitosamente
+            } else {
+                // Manejar error en el registro de asistencia
+            }
+        } catch (e: Exception) {
+            // Manejar fallo en la solicitud
+        }
+    } else {
+        // Manejar el caso en que no se pueda obtener el ID del usuario
+    }
+}
+
+fun createAttendanceRequest(context: Context): AttendanceRequest? {
+    val userId = getUserId(context)
+    return if (userId != null && userId != -1) {
+        AttendanceRequest(user = userId)
+    } else {
+        null
+    }
+}
+
+fun getUserId(context: Context): Int? {
+    val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    return if (sharedPreferences.contains("user_id")) {
+        sharedPreferences.getInt("user_id", -1)
+    } else {
+        null
+    }
 }

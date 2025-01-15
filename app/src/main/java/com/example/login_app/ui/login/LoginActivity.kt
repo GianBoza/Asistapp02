@@ -72,7 +72,7 @@ fun LoginScreen(navController: NavHostController) {
                         viewModel.login(username, password) { response, error ->
                             if (response != null) {
                                 Toast.makeText(context, "Login successful", Toast.LENGTH_LONG).show()
-                                navController.navigate("home")
+                                navController.navigate("home")  
                             } else {
                                 Toast.makeText(context, "Login failed: $error", Toast.LENGTH_LONG).show()
                             }
